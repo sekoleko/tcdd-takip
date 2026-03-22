@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TCDD YHT Bilet Takipçi</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:      #07090f;
+  --bg2:     #0d1117;
+  --card:    #161b22;
+  --card2:   #1c2333;
+  --border:  #21262d;
+  --accent:  #1f6feb;
+  --green:   #3fb950;
+  --red:     #f85149;
+  --amber:   #e3b341;
+  --sky:     #79c0ff;
+  --purple:  #bc8cff;
+  --text:    #e6edf3;
+  --text2:   #8b949e;
+  --text3:   #484f58;
+}
+body { background: var(--bg); color: var(--text); font-family: -apple-system, 'Segoe UI', sans-serif; min-height: 100vh; }
+
+/* Header */
+.header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+.header-left { display: flex; align-items: center; gap: 12px; }
+.header-left h1 { font-size: 18px; font-weight: 700; }
+.header-left p { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.accent-line { height: 2px; background: var(--accent); }
+.status-pill { font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 20px; background: var(--card); }
+.status-pill.active { color: var(--green); }
+.status-pill.idle   { color: var(--text3); }
+
+/* Stats */
+.stats { display: flex; gap: 10px; padding: 14px 20px; overflow-x: auto; }
+.stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; min-width: 100px; text-align: center; flex-shrink: 0; }
+.stat-val { font-size: 26px; font-weight: 700; }
+.stat-lbl { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+/* Main */
+.main { padding: 0 16px 80px; max-width: 900px; margin: 0 auto; }
+
+/* Card */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 14px; overflow: hidden; }
+.card-head { background: var(--card2); padding: 12px 16px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+.card-body { padding: 16px; }
+
+/* Form */
+.form-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
+.form-group label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+select, input { background: var(--card2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; padding: 10px 12px; width: 100%; outline: none; -webkit-appearance: none; }
+select:focus, input:focus { border-color: var(--accent); }
+
+/* Buttons */
+.btn { padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; transition: opacity 0.15s; }
+.btn:active { opacity: 0.7; }
+.btn-primary { background: var(--accent); color: #fff; width: 100%; }
+.btn-green   { background: var(--green); color: #000; }
+.btn-red     { background: var(--red);   color: #fff; }
+.btn-gray    { background: var(--card2); color: var(--text2); border: 1px solid var(--border); }
+.btn-row     { display: flex; gap: 8px; margin-top: 10px; }
+.btn-row .btn { flex: 1; }
+
+/* Sefer listesi (arama sonucu) */
+.sefer-item { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; cursor: pointer; }
+.sefer-item.selected { border-color: var(--accent); background: rgba(31,111,235,0.1); }
+.sefer-saat { font-size: 20px; font-weight: 700; min-width: 54px; }
+.sefer-ad   { font-size: 12px; color: var(--text2); flex: 1; }
+.checkbox   { width: 20px; height: 20px; border: 2px solid var(--border); border-radius: 5px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.sefer-item.selected .checkbox { background: var(--accent); border-color: var(--accent); color: #fff; font-size: 12px; }
+
+/* Takip kartları */
+.takip-kart { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+.takip-kart.bos  { border-color: #2a4a2a; }
+.takip-kart.dolu { border-color: #4a2a2a; }
+.takip-serit { width: 4px; flex-shrink: 0; align-self: stretch; }
+.takip-ic { display: flex; gap: 0; }
+.takip-icerik { padding: 12px 14px; flex: 1; }
+.takip-baslik { font-size: 15px; font-weight: 700; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: flex-start; }
+.takip-alt { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+.durum-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 6px; }
+.badge-bos  { background: #1a2f1a; color: var(--green); }
+.badge-dolu { background: #2f1a1a; color: var(--red); }
+.badge-bkl  { background: var(--card2); color: var(--text3); }
+.sil-btn { background: none; border: none; color: var(--text3); font-size: 16px; cursor: pointer; padding: 4px 8px; }
+
+/* Log */
+.log-box { height: 200px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.8; }
+.log-row { display: flex; gap: 10px; }
+.log-time { color: var(--text3); flex-shrink: 0; }
+.log-ok    { color: var(--green); }
+.log-err   { color: var(--red); }
+.log-warn  { color: var(--amber); }
+.log-info  { color: var(--sky); }
+.log-muted { color: var(--text2); }
+
+/* Ayarlar modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; width: 100%; max-width: 420px; }
+.modal h2 { font-size: 16px; margin-bottom: 16px; }
+
+/* Loading */
+.loading { display: flex; align-items: center; gap: 8px; color: var(--text2); font-size: 13px; padding: 20px; justify-content: center; }
+.spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Aralik slider */
+.aralik-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.aralik-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.aralik-val { font-size: 13px; font-weight: 600; color: var(--accent); min-width: 50px; }
+
+/* Toast */
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--green); color: #000; font-weight: 600; font-size: 13px; padding: 12px 20px; border-radius: 10px; transition: transform 0.3s; z-index: 200; white-space: nowrap; }
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.err  { background: var(--red); color: #fff; }
+
+@media (max-width: 500px) {
+  .stats { gap: 8px; }
+  .stat  { padding: 10px 12px; min-width: 80px; }
+  .stat-val { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <span style="font-size:24px">🚆</span>
+    <div>
+      <h1>YHT Bilet Takipçi</h1>
+      <p>TCDD Ekonomi · Anlık İzleme</p>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span class="status-pill idle" id="statusPill">● Bekliyor</span>
+    <button class="btn btn-gray" onclick="modalAc()" style="padding:8px 12px;font-size:12px">⚙ Ayarlar</button>
+  </div>
+</div>
+<div class="accent-line"></div>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat">
+    <div class="stat-val" id="statKontrol" style="color:#58a6ff">0</div>
+    <div class="stat-lbl">Kontrol</div>
+  </div>
+  <div class="stat">
+    <div class="stat-val" id="statUyari" style="color:#3fb950">0</div>
+    <div class="stat-lbl">Uyarı</div>
+  </div>
+  <div class="stat">
+    <div class="stat-val" id="statSefer" style="color:#bc8cff">0</div>
+    <div class="stat-lbl">Takip</div>
+  </div>
+  <div class="stat">
+    <div class="stat-val" id="statSure" style="color:#e3b341">—</div>
+    <div class="stat-lbl">Sonraki (sn)</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Sefer Ekle -->
+  <div class="card">
+    <div class="card-head">
+      ➕ Yeni Sefer Ekle
+      <span style="font-size:11px;background:#1a2f1a;color:#3fb950;padding:3px 8px;border-radius:6px">Otomatik Mod</span>
+    </div>
+    <div class="card-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Kalkış</label>
+          <select id="kalkis">
+            <option value="">Seçiniz...</option>
+            <optgroup label="Ankara">
+              <option>Ankara Gar</option><option>Eryaman</option><option>Polatlı</option>
+            </optgroup>
+            <optgroup label="İstanbul (Anadolu)">
+              <option value="İstanbul(Söğütlüçeşme)">Söğütlüçeşme</option>
+              <option value="İstanbul(Bostancı)">Bostancı</option>
+              <option value="İstanbul(Pendik)">Pendik</option>
+              <option value="İstanbul(Gebze)">Gebze</option>
+            </optgroup>
+            <optgroup label="İstanbul (Avrupa)">
+              <option value="İstanbul(Halkalı)">Halkalı</option>
+              <option value="İstanbul(Bakırköy)">Bakırköy</option>
+            </optgroup>
+            <optgroup label="Kocaeli / Sakarya">
+              <option value="İzmit YHT">İzmit YHT</option>
+              <option>Arifiye</option><option>Pamukova</option>
+            </optgroup>
+            <optgroup label="Eskişehir / Bilecik">
+              <option>Eskişehir</option><option>Bozüyük</option><option>Bilecik</option>
+            </optgroup>
+            <optgroup label="Konya">
+              <option value="Selçuklu">Selçuklu (Konya)</option>
+              <option value="Konya">Konya Gar</option>
+              <option>Çumra</option><option>Karaman</option>
+            </optgroup>
+            <optgroup label="Sivas Hattı">
+              <option>Sivas</option><option>Yozgat</option><option>Kırıkkale</option>
+            </optgroup>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end;padding-bottom:2px;font-size:20px;font-weight:700;color:#58a6ff">→</div>
+        <div class="form-group">
+          <label>Varış</label>
+          <select id="varis">
+            <option value="">Seçiniz...</option>
+            <optgroup label="Ankara">
+              <option>Ankara Gar</option><option>Eryaman</option><option>Polatlı</option>
+            </optgroup>
+            <optgroup label="İstanbul (Anadolu)">
+              <option value="İstanbul(Söğütlüçeşme)">Söğütlüçeşme</option>
+              <option value="İstanbul(Bostancı)">Bostancı</option>
+              <option value="İstanbul(Pendik)">Pendik</option>
+              <option value="İstanbul(Gebze)">Gebze</option>
+            </optgroup>
+            <optgroup label="İstanbul (Avrupa)">
+              <option value="İstanbul(Halkalı)">Halkalı</option>
+              <option value="İstanbul(Bakırköy)">Bakırköy</option>
+            </optgroup>
+            <optgroup label="Kocaeli / Sakarya">
+              <option value="İzmit YHT">İzmit YHT</option>
+              <option>Arifiye</option><option>Pamukova</option>
+            </optgroup>
+            <optgroup label="Eskişehir / Bilecik">
+              <option>Eskişehir</option><option>Bozüyük</option><option>Bilecik</option>
+            </optgroup>
+            <optgroup label="Konya">
+              <option value="Selçuklu">Selçuklu (Konya)</option>
+              <option value="Konya">Konya Gar</option>
+              <option>Çumra</option><option>Karaman</option>
+            </optgroup>
+            <optgroup label="Sivas Hattı">
+              <option>Sivas</option><option>Yozgat</option><option>Kırıkkale</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tarih</label>
+          <input type="date" id="tarih">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="seferAra()">🔍 Seferleri Ara</button>
+
+      <!-- Arama sonuçları -->
+      <div id="aramaAlani" style="margin-top:14px;display:none">
+        <div id="aramaIcerik"></div>
+        <button class="btn btn-green" onclick="seferEkle()" style="margin-top:10px;width:100%">✓ Seçilenleri Ekle</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Takip Listesi -->
+  <div class="card">
+    <div class="card-head">
+      📋 Takip Listesi
+      <span id="adetLbl" style="font-size:12px;color:var(--text3)">0 sefer</span>
+    </div>
+    <div class="card-body" id="takipListe">
+      <div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">
+        Henüz sefer eklenmedi
+      </div>
+    </div>
+  </div>
+
+  <!-- Kontrol -->
+  <div class="card">
+    <div class="card-head">⚙ Takip Kontrolü</div>
+    <div class="card-body">
+      <div class="aralik-row">
+        <span style="font-size:12px;color:var(--text2)">Kontrol aralığı:</span>
+        <input type="range" id="aralik" min="15" max="300" step="15" value="30"
+               oninput="document.getElementById('aralikVal').textContent=this.value+'sn'">
+        <span class="aralik-val" id="aralikVal">30sn</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-green" id="baslatBtn" onclick="baslat()">▶ Başlat</button>
+        <button class="btn btn-red"   id="durdurBtn" onclick="durdur()" disabled>⏹ Durdur</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="card">
+    <div class="card-head">
+      📟 Canlı Log
+      <button onclick="logTemizle()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px">Temizle</button>
+    </div>
+    <div class="card-body" style="padding:12px">
+      <div class="log-box" id="logBox"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Ayarlar Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)modalKapat()">
+  <div class="modal">
+    <h2>⚙ Telegram Ayarları</h2>
+    <div class="form-group" style="margin-bottom:12px">
+      <label>Bot Token</label>
+      <input type="text" id="tgToken" placeholder="7123456789:AABBcc...">
+    </div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label>Chat ID</label>
+      <input type="text" id="tgChat" placeholder="1234567890">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-green" onclick="ayarlarKaydet()">✓ Kaydet</button>
+      <button class="btn btn-gray"  onclick="modalKapat()">İptal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+let bulunanSeferler = [];
+let seciliSeferler  = new Set();
+let durumInterval   = null;
+let countdown       = 0;
+let cdTimer         = null;
+
+// ── Başlangıç ──────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('tarih').min   = today;
+  document.getElementById('tarih').value = today;
+
+  // Kayıtlı ayarları yükle
+  const token = localStorage.getItem('tg_token') || '';
+  const chat  = localStorage.getItem('tg_chat')  || '';
+  document.getElementById('tgToken').value = token;
+  document.getElementById('tgChat').value  = chat;
+  if (token && chat) ayarlarGonder(token, chat);
+
+  durumInterval = setInterval(durumGuncelle, 2000);
+  durumGuncelle();
+});
+
+// ── API Yardımcıları ───────────────────────────────────
+async function api(url, method='GET', body=null) {
+  const opts = { method, headers: {'Content-Type':'application/json'} };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  return r.json();
+}
+
+// ── Toast ──────────────────────────────────────────────
+function toast(msg, err=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = 'toast show' + (err ? ' err' : '');
+  setTimeout(() => el.className = 'toast', 3000);
+}
+
+// ── Sefer Ara ──────────────────────────────────────────
+async function seferAra() {
+  const kalkis = document.getElementById('kalkis').value;
+  const varis  = document.getElementById('varis').value;
+  const tarih  = document.getElementById('tarih').value;
+
+  if (!kalkis || !varis) { toast('Kalkış ve varış seçiniz!', true); return; }
+  if (kalkis === varis)  { toast('Kalkış ve varış aynı olamaz!', true); return; }
+
+  const alan = document.getElementById('aramaAlani');
+  alan.style.display = 'block';
+  document.getElementById('aramaIcerik').innerHTML =
+    '<div class="loading"><div class="spinner"></div> Seferler aranıyor... (30-60sn sürebilir)</div>';
+
+  const res = await api('/api/sefer-ara', 'POST', {
+    kalkis, varis, tarih: tarih.split('-').reverse().join('-')
+  });
+
+  if (!res.ok) {
+    document.getElementById('aramaIcerik').innerHTML =
+      `<div style="color:var(--red);font-size:13px;padding:10px">❌ ${res.hata}</div>`;
+    return;
+  }
+
+  bulunanSeferler = res.seferler;
+  seciliSeferler  = new Set();
+  renderSeferler();
+}
+
+function renderSeferler() {
+  const html = bulunanSeferler.map((s, i) => `
+    <div class="sefer-item ${seciliSeferler.has(i) ? 'selected' : ''}"
+         onclick="toggleSefer(${i})">
+      <div class="checkbox">${seciliSeferler.has(i) ? '✓' : ''}</div>
+      <div class="sefer-saat">${s.saat_tr}</div>
+      <div class="sefer-ad">${s.tren}</div>
+    </div>
+  `).join('');
+  document.getElementById('aramaIcerik').innerHTML = html ||
+    '<div style="color:var(--text3);font-size:13px;padding:10px">Sefer bulunamadı</div>';
+}
+
+function toggleSefer(i) {
+  if (seciliSeferler.has(i)) seciliSeferler.delete(i);
+  else seciliSeferler.add(i);
+  renderSeferler();
+}
+
+async function seferEkle() {
+  if (!seciliSeferler.size) { toast('En az bir sefer seçin!', true); return; }
+  const sec = [...seciliSeferler].map(i => bulunanSeferler[i]);
+  const res = await api('/api/ekle', 'POST', {
+    kalkis:      document.getElementById('kalkis').value,
+    varis:       document.getElementById('varis').value,
+    tarih:       document.getElementById('tarih').value.split('-').reverse().join('-'),
+    saatler_tr:  sec.map(s => s.saat_tr),
+    saatler_utc: sec.map(s => s.saat_utc),
+  });
+  if (res.ok) {
+    toast('Sefer eklendi!');
+    document.getElementById('aramaAlani').style.display = 'none';
+    durumGuncelle();
+  }
+}
+
+// ── Takip Listesi ──────────────────────────────────────
+function renderTakip(takip) {
+  document.getElementById('adetLbl').textContent = `${takip.length} sefer`;
+  const el = document.getElementById('takipListe');
+  if (!takip.length) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">Henüz sefer eklenmedi</div>';
+    return;
+  }
+  el.innerHTML = takip.map((s, i) => {
+    const cls  = s.durum === 'BOS' ? 'bos' : s.durum === 'DOLU' ? 'dolu' : '';
+    const serit= s.durum === 'BOS' ? 'var(--green)' : s.durum === 'DOLU' ? 'var(--red)' : 'var(--text3)';
+    const badge= s.durum === 'BOS' ? 'badge-bos' : s.durum === 'DOLU' ? 'badge-dolu' : 'badge-bkl';
+    const ikon = s.durum === 'BOS' ? '🟢' : s.durum === 'DOLU' ? '🔴' : '⚪';
+    return `
+      <div class="takip-kart ${cls}">
+        <div class="takip-ic">
+          <div class="takip-serit" style="background:${serit}"></div>
+          <div class="takip-icerik">
+            <div class="takip-baslik">
+              <span>${s.kalkis} → ${s.varis}</span>
+              <button class="sil-btn" onclick="sil(${i})">✕</button>
+            </div>
+            <div class="takip-alt">📅 ${s.tarih} &nbsp; ⏰ ${s.saatler_tr.join(', ')}</div>
+            <span class="durum-badge ${badge}">${ikon} ${s.durum_detay}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function sil(i) {
+  await api(`/api/sil/${i}`, 'DELETE');
+  durumGuncelle();
+}
+
+// ── Kontrol ────────────────────────────────────────────
+async function baslat() {
+  const aralik = parseInt(document.getElementById('aralik').value);
+  const res = await api('/api/baslat', 'POST', { aralik });
+  if (res.ok) {
+    document.getElementById('baslatBtn').disabled = true;
+    document.getElementById('durdurBtn').disabled = false;
+    toast('Takip başlatıldı!');
+    baslatCountdown(aralik);
+  } else {
+    toast(res.hata || 'Hata!', true);
+  }
+}
+
+async function durdur() {
+  await api('/api/durdur', 'POST');
+  document.getElementById('baslatBtn').disabled = false;
+  document.getElementById('durdurBtn').disabled = true;
+  clearInterval(cdTimer);
+  document.getElementById('statSure').textContent = '—';
+  toast('Takip durduruldu.', true);
+}
+
+function baslatCountdown(aralik) {
+  clearInterval(cdTimer);
+  countdown = aralik;
+  document.getElementById('statSure').textContent = countdown;
+  cdTimer = setInterval(() => {
+    countdown = Math.max(0, countdown - 1);
+    document.getElementById('statSure').textContent = countdown;
+    if (countdown === 0) countdown = aralik;
+  }, 1000);
+}
+
+// ── Durum Güncelle ─────────────────────────────────────
+async function durumGuncelle() {
+  try {
+    const d = await api('/api/durum');
+    document.getElementById('statKontrol').textContent = d.kontrol_no;
+    document.getElementById('statUyari').textContent   = d.bulunan;
+    document.getElementById('statSefer').textContent   = d.takip.length;
+
+    const pill = document.getElementById('statusPill');
+    if (d.calisiyor) {
+      pill.textContent = '● Aktif';
+      pill.className   = 'status-pill active';
+    } else {
+      pill.textContent = '● Bekliyor';
+      pill.className   = 'status-pill idle';
+    }
+
+    renderTakip(d.takip);
+    renderLog(d.loglar);
+  } catch(e) {}
+}
+
+// ── Log ────────────────────────────────────────────────
+let sonLogSayisi = 0;
+function renderLog(loglar) {
+  if (loglar.length === sonLogSayisi) return;
+  sonLogSayisi = loglar.length;
+  const el = document.getElementById('logBox');
+  el.innerHTML = [...loglar].reverse().map(l => `
+    <div class="log-row">
+      <span class="log-time">[${l.zaman}]</span>
+      <span class="log-${l.tip}">${l.msg}</span>
+    </div>`).join('');
+}
+
+function logTemizle() {
+  document.getElementById('logBox').innerHTML = '';
+  sonLogSayisi = 0;
+}
+
+// ── Ayarlar ────────────────────────────────────────────
+function modalAc()   { document.getElementById('modalOverlay').classList.add('open'); }
+function modalKapat(){ document.getElementById('modalOverlay').classList.remove('open'); }
+
+async function ayarlarKaydet() {
+  const token = document.getElementById('tgToken').value.trim();
+  const chat  = document.getElementById('tgChat').value.trim();
+  localStorage.setItem('tg_token', token);
+  localStorage.setItem('tg_chat',  chat);
+  await ayarlarGonder(token, chat);
+  toast('Ayarlar kaydedildi!');
+  modalKapat();
+}
+
+async function ayarlarGonder(token, chat) {
+  await api('/api/ayarlar', 'POST', { tg_token: token, tg_chat: chat });
+}
+</script>
+</body>
+</html>
