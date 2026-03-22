@@ -40,17 +40,30 @@ def headless_driver():
     opts.add_argument("--disable-gpu")
     opts.add_argument("--window-size=1280,800")
     opts.add_argument("--disable-blink-features=AutomationControlled")
-    opts.add_experimental_option("excludeSwitches", ["enable-automation"])
-    opts.add_experimental_option("useAutomationExtension", False)
     opts.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
+    # Railway/Linux ortamı için Chrome yolu
+    chrome_bin = os.environ.get("CHROME_BIN", "")
+    chromedriver_path = os.environ.get("CHROMEDRIVER_PATH", "")
+
+    if chrome_bin:
+        opts.binary_location = chrome_bin
+
     try:
-        from webdriver_manager.chrome import ChromeDriverManager
-        driver = webdriver.Chrome(
-            service=Service(ChromeDriverManager().install()),
-            options=opts
-        )
-    except Exception:
+        if chromedriver_path:
+            driver = webdriver.Chrome(
+                service=Service(chromedriver_path),
+                options=opts
+            )
+        else:
+            from webdriver_manager.chrome import ChromeDriverManager
+            driver = webdriver.Chrome(
+                service=Service(ChromeDriverManager().install()),
+                options=opts
+            )
+    except Exception as e:
+        logger.error(f"Driver hatası: {e}")
+        # Son çare: direkt chrome dene
         driver = webdriver.Chrome(options=opts)
 
     driver.execute_script(
