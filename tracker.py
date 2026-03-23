@@ -43,30 +43,41 @@ def headless_driver():
     opts.add_argument("--disable-blink-features=AutomationControlled")
     opts.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
-    # Railway/Linux ortamı için Chrome yolu
-    chrome_bin = os.environ.get("CHROME_BIN", "")
-    chromedriver_path = os.environ.get("CHROMEDRIVER_PATH", "")
+    import subprocess
+    # Sistemdeki chromium/chrome yolunu bul
+    for chrome_path in [
+        "/usr/bin/chromium",
+        "/usr/bin/chromium-browser", 
+        "/usr/bin/google-chrome",
+        "/nix/var/nix/profiles/default/bin/chromium",
+        "/run/current-system/sw/bin/chromium",
+    ]:
+        if os.path.exists(chrome_path):
+            opts.binary_location = chrome_path
+            break
 
-    if chrome_bin:
-        opts.binary_location = chrome_bin
-
-    try:
-        if chromedriver_path:
+    # Sistemdeki chromedriver yolunu bul
+    for driver_path in [
+        "/usr/bin/chromedriver",
+        "/nix/var/nix/profiles/default/bin/chromedriver",
+        "/run/current-system/sw/bin/chromedriver",
+    ]:
+        if os.path.exists(driver_path):
             driver = webdriver.Chrome(
-                service=Service(chromedriver_path),
+                service=Service(driver_path),
                 options=opts
             )
-        else:
-            from webdriver_manager.chrome import ChromeDriverManager
-            driver = webdriver.Chrome(
-                service=Service(ChromeDriverManager().install()),
-                options=opts
+            driver.execute_script(
+                "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
             )
-    except Exception as e:
-        logger.error(f"Driver hatası: {e}")
-        # Son çare: direkt chrome dene
-        driver = webdriver.Chrome(options=opts)
+            return driver
 
+    # Hiçbiri bulunamazsa webdriver-manager dene
+    from webdriver_manager.chrome import ChromeDriverManager
+    driver = webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()),
+        options=opts
+    )
     driver.execute_script(
         "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
     )
