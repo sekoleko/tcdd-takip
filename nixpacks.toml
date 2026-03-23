@@ -5,4 +5,4 @@ nixPkgs = ["python311", "chromium", "chromedriver"]
 cmds = ["pip install -r requirements.txt"]
 
 [start]
-cmd = "python app.py"
+cmd = "which chromium && which chromedriver && python app.py"
